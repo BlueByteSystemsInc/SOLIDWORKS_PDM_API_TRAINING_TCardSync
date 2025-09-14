@@ -34,7 +34,8 @@ Partial Public Class AddIn
             Try
                 Dim variableValue As Object = Nothing
 
-                fileEnumerator.GetVar(variableName, "@", variableValue)
+                'read the value directly from the database - the file does not need to be locally cached
+                fileEnumerator.GetVarFromDb(variableName, "@", variableValue)
 
                 If variableValue IsNot Nothing Then
                     poVariables(variableName) = variableValue.ToString()

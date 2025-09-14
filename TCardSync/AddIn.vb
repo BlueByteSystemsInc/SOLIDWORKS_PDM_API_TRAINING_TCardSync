@@ -1,5 +1,6 @@
 ﻿Imports System.Runtime.InteropServices
 Imports System.Text
+Imports System.Windows.Forms
 Imports EPDM.Interop.epdm
 
 
@@ -53,9 +54,10 @@ Partial Public Class AddIn
         Dim userMgr As IEdmUserMgr5 = vault
         Dim handle As Integer = poCmd.mlParentWnd
         Dim loggedInUser As IEdmUser5 = userMgr.GetLoggedInUser()
-
+        Dim instance As IEdmTaskInstance = poCmd.mpoExtra
 
         Try
+            AttachDebugger()
 
             Select Case poCmd.meCmdType
                 Case EdmCmdType.EdmCmd_TaskLaunch
@@ -70,14 +72,47 @@ Partial Public Class AddIn
                 Case EdmCmdType.EdmCmd_TaskRun
 
                     HandlesTaskRun(poCmd, ppoData)
+
+                    instance.SetStatus(EdmTaskStatus.EdmTaskStat_DoneOK, 0, "Completed successfully")
             End Select
 
 
+
+        Catch ex As CancellationException
+
+            If instance IsNot Nothing Then
+                instance.SetStatus(EdmTaskStatus.EdmTaskStat_DoneCancelled, 0, ex.Message)
+            End If
         Catch ex As Exception
 
-            ' todo report task cancellation or failure 
+            If instance IsNot Nothing Then
+                instance.SetStatus(EdmTaskStatus.EdmTaskStat_DoneFailed, 0, ex.Message)
+            End If
 
         End Try
+    End Sub
+
+
+    Public Sub AttachDebugger()
+
+        Dim Message As StringBuilder = New StringBuilder()
+
+        Message.AppendLine("Attach debugger?")
+        Message.AppendLine("Press 'Yes' to launch and attach the debugger.")
+
+        Message.AppendLine("")
+
+        Message.AppendLine("Process Information:")
+        Message.AppendLine($"Name: {System.Diagnostics.Process.GetCurrentProcess().ProcessName}")
+        Message.AppendLine($"ID: {System.Diagnostics.Process.GetCurrentProcess().Id}")
+
+
+        Dim dialogRet As DialogResult = MessageBox.Show(Message.ToString(), $"AddIn: {ADDIN_NAME} - Debug", MessageBoxButtons.YesNo)
+
+        If dialogRet = DialogResult.Yes Then
+            System.Diagnostics.Debugger.Launch()
+        End If
+
     End Sub
 
 End Class

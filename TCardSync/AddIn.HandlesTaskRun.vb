@@ -6,11 +6,13 @@ Partial Public Class AddIn
 
     Private Sub HandlesTaskRun(poCmd As EdmCmd, ppoData() As EdmCmdData)
 
-
+        Dim handle = poCmd.mlParentWnd
         Dim vault As IEdmVault5 = poCmd.mpoVault
         Dim instance As IEdmTaskInstance = poCmd.mpoExtra
+        Dim userMgr As IEdmUserMgr5 = vault
+        Dim loggedInUser As IEdmUser5 = userMgr.GetLoggedInUser()
         'only get the drawings
-        Dim drawings As New Dictionary(Of IEdmFile5, Tuple(Of IEdmFile5, IEdmFile5))
+        Dim drawings As New Dictionary(Of Tuple(Of IEdmFile5, IEdmFile5), Tuple(Of IEdmFile5, IEdmFile5))
 
         For Each item As EdmCmdData In ppoData
 
@@ -27,7 +29,7 @@ Partial Public Class AddIn
                 Continue For
             End If
 
-            drawings.Add(file, New Tuple(Of IEdmFile5, IEdmFile5)(associatedModel.Item1, associatedModel.Item2))
+            drawings.Add(New Tuple(Of IEdmFile5, IEdmFile5)(file, folder), New Tuple(Of IEdmFile5, IEdmFile5)(associatedModel.Item1, associatedModel.Item2))
 
         Next
 
@@ -54,15 +56,26 @@ Partial Public Class AddIn
 
         errorLogs.Clear()
 
+        Dim index As Integer = 0
+        Dim count As Integer = drawings.Count
+
+
+        instance.SetProgressRange(count, 0, String.Empty)
+
         For Each item In drawings
 
+            index = index + 1
+
             Try
-                Dim drawingFile As IEdmFile5 = item.Key
+                Dim drawingFile As IEdmFile5 = item.Key.Item1
+                Dim drawingFolder As IEdmFolder5 = item.Key.Item2
                 Dim drawingAssociatedModelFile As IEdmFile5 = item.Value.Item1
                 Dim drawingAssociatedModelFolder As IEdmFolder5 = item.Value.Item2
 
                 HandleCancellationRequest(instance)
                 HandleSuspensionRequest(instance)
+
+                ReportProgress(instance, index, $"Processing {drawingFile.Name}")
 
 
 
@@ -79,15 +92,27 @@ Partial Public Class AddIn
                     Throw New Exception($"{drawingFile.Name}: No changes peformed.")
                 End If
 
+                ' check if we can check out the drawing
+                If drawingFile.IsLocked And drawingFile.LockedByUser.ID <> loggedInUser.ID Then
+                    Throw New Exception($"{drawingFile.Name}: File is locked by {drawingFile.LockedByUser.Name}")
+                End If
 
-                'check out drawing
+                If drawingFile.IsLocked And drawingFile.LockedOnComputer <> Environment.MachineName Then
+                    Throw New Exception($"{drawingFile.Name}: File is locked on another computer {drawingFile.LockedOnComputer}")
+                End If
 
-
+                If drawingFile.IsLocked = False Then
+                    'locally cache the drawing and its references
+                    drawingFile.GetFileCopy(handle, Nothing, Nothing, EdmGetFlag.EdmGet_Refs + EdmGetFlag.EdmGet_RefsVerLatest)
+                    'check out drawing
+                    drawingFile.LockFile(drawingFolder.ID, handle)
+                End If
 
                 SetVariables(drawingFile, drawingFolder, poVariables, errorLogs)
                 'check drawing back into the vault
 
-
+                'commit changes
+                drawingFile.UnlockFile(handle, "Checked in by task")
 
             Catch ex As Exception
                 errorLogs.AppendLine(ex.Message)
@@ -97,6 +122,12 @@ Partial Public Class AddIn
 
 
 
+    End Sub
+
+    Private Sub ReportProgress(instance As IEdmTaskInstance, index As Integer, message As String)
+
+
+        instance.SetProgressPos(index, message)
     End Sub
 
     Private Function GetAssociatedDocument(ByRef drawing As IEdmFile5, ByRef drawingFolder As IEdmFolder5) As Tuple(Of IEdmFile5, IEdmFolder5)
@@ -127,7 +158,7 @@ Partial Public Class AddIn
     Private Sub HandleCancellationRequest(ByRef instance As IEdmTaskInstance)
         If instance.GetStatus() = EdmTaskStatus.EdmTaskStat_CancelPending Then
             instance.SetStatus(EdmTaskStatus.EdmTaskStat_DoneCancelled)
-            Exit Sub
+            Throw New CancellationException("Task cancelled by user.")
         End If
 
 
