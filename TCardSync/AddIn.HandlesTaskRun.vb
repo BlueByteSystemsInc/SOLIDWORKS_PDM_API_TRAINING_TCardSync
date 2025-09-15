@@ -1,4 +1,5 @@
-﻿Imports EPDM.Interop.epdm
+﻿Imports System.Reflection.Emit
+Imports EPDM.Interop.epdm
 
 Partial Public Class AddIn
 
@@ -12,7 +13,7 @@ Partial Public Class AddIn
         Dim userMgr As IEdmUserMgr5 = vault
         Dim loggedInUser As IEdmUser5 = userMgr.GetLoggedInUser()
         'only get the drawings
-        Dim drawings As New Dictionary(Of Tuple(Of IEdmFile5, IEdmFile5), Tuple(Of IEdmFile5, IEdmFile5))
+        Dim drawings As New Dictionary(Of Tuple(Of IEdmFile5, IEdmFolder5), Tuple(Of IEdmFile5, IEdmFolder5))
 
         For Each item As EdmCmdData In ppoData
 
@@ -29,7 +30,7 @@ Partial Public Class AddIn
                 Continue For
             End If
 
-            drawings.Add(New Tuple(Of IEdmFile5, IEdmFile5)(file, folder), New Tuple(Of IEdmFile5, IEdmFile5)(associatedModel.Item1, associatedModel.Item2))
+            drawings.Add(New Tuple(Of IEdmFile5, IEdmFolder5)(file, folder), New Tuple(Of IEdmFile5, IEdmFolder5)(associatedModel.Item1, associatedModel.Item2))
 
         Next
 
@@ -79,8 +80,13 @@ Partial Public Class AddIn
 
 
 
-                Dim poVariables As Dictionary(Of String, String) = Nothing
+                Dim poVariables As Dictionary(Of String, String) = New Dictionary(Of String, String)
 
+                For Each variableName In variableNames
+
+                    poVariables.Add(variableName, Nothing)
+
+                Next
                 'pull variables from associated document
                 GetVariables(drawingAssociatedModelFile, drawingAssociatedModelFolder, poVariables, errorLogs)
 
@@ -93,12 +99,16 @@ Partial Public Class AddIn
                 End If
 
                 ' check if we can check out the drawing
-                If drawingFile.IsLocked And drawingFile.LockedByUser.ID <> loggedInUser.ID Then
-                    Throw New Exception($"{drawingFile.Name}: File is locked by {drawingFile.LockedByUser.Name}")
+                If drawingFile.IsLocked Then
+                    If drawingFile.LockedByUser.ID <> loggedInUser.ID Then
+                        Throw New Exception($"{drawingFile.Name}: File is locked by {drawingFile.LockedByUser.Name}")
+                    End If
                 End If
 
-                If drawingFile.IsLocked And drawingFile.LockedOnComputer <> Environment.MachineName Then
-                    Throw New Exception($"{drawingFile.Name}: File is locked on another computer {drawingFile.LockedOnComputer}")
+                If drawingFile.IsLocked Then
+                    If drawingFile.LockedOnComputer <> Environment.MachineName Then
+                        Throw New Exception($"{drawingFile.Name}: File is locked on another computer {drawingFile.LockedOnComputer}")
+                    End If
                 End If
 
                 If drawingFile.IsLocked = False Then

@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35919.96 d17.13
+VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "TCardSync", "TCardSync\TCardSync.vbproj", "{89064681-8236-40D3-99AE-490D1950C464}"
+EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "TCardSync.Tests", "TCardSync.Tests\TCardSync.Tests.vbproj", "{307D52E0-7306-430A-A3EF-67BEECE192BB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{89064681-8236-40D3-99AE-490D1950C464}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{89064681-8236-40D3-99AE-490D1950C464}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{89064681-8236-40D3-99AE-490D1950C464}.Release|Any CPU.Build.0 = Release|Any CPU
+		{307D52E0-7306-430A-A3EF-67BEECE192BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{307D52E0-7306-430A-A3EF-67BEECE192BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{307D52E0-7306-430A-A3EF-67BEECE192BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{307D52E0-7306-430A-A3EF-67BEECE192BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

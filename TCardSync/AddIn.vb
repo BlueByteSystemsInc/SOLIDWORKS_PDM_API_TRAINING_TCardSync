@@ -27,7 +27,7 @@ Partial Public Class AddIn
         poInfo.mbsCompany = "BLUE BYTE SYSTEMS INC."
         poInfo.mbsDescription = "Task data card values between drawing and models"
         'suggest format yyyy-mm-dd for versioning 
-        poInfo.mlAddInVersion = 1
+        poInfo.mlAddInVersion = 2
 
         ' 18 corresponding to SolidWorks 2018
         ' more information here: https://github.com/BlueByteSystemsInc/SOLIDWORKS-PDM-API-SDK/blob/master/src/BlueByte.SOLIDWORKS.PDMProfessional.SDK/Enums/PDMProfessionalVersion_e.cs#L12
@@ -50,18 +50,20 @@ Partial Public Class AddIn
     ' This method is called by the vault when a command associated with the add-in is executed.
     Public Sub OnCmd(ByRef poCmd As EdmCmd, ByRef ppoData() As EdmCmdData) Implements IEdmAddIn5.OnCmd
 
+        AttachDebugger()
+
         Dim vault As IEdmVault5 = poCmd.mpoVault
         Dim userMgr As IEdmUserMgr5 = vault
         Dim handle As Integer = poCmd.mlParentWnd
         Dim loggedInUser As IEdmUser5 = userMgr.GetLoggedInUser()
-        Dim instance As IEdmTaskInstance = poCmd.mpoExtra
+        Dim instance As IEdmTaskInstance = Nothing
 
         Try
-            AttachDebugger()
+
 
             Select Case poCmd.meCmdType
                 Case EdmCmdType.EdmCmd_TaskLaunch
-
+                    instance = poCmd.mpoExtra
                     HandlesTaskLaunch(poCmd, ppoData)
                 Case EdmCmdType.EdmCmd_TaskSetup
 
@@ -70,9 +72,8 @@ Partial Public Class AddIn
 
                     HandlesTaskSetupButton(poCmd)
                 Case EdmCmdType.EdmCmd_TaskRun
-
+                    instance = poCmd.mpoExtra
                     HandlesTaskRun(poCmd, ppoData)
-
                     instance.SetStatus(EdmTaskStatus.EdmTaskStat_DoneOK, 0, "Completed successfully")
             End Select
 
